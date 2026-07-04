@@ -21,7 +21,6 @@ export default function App() {
     localStorage.setItem('transit_hub_networks', JSON.stringify(reseaux));
   }, [reseaux]);
 
-  // 📊 CALCULS STATISTIQUES (COUCHE 5)
   const totalReseaux = reseaux.length;
   const totalReels = reseaux.filter(r => r.type === "real").length;
   const totalFictifs = reseaux.filter(r => r.type === "fake").length;
@@ -43,12 +42,24 @@ export default function App() {
     setNomReseau("");
   };
 
-  // 🛡️ SUPPRESSION SÉCURISÉE (COUCHE 5)
   const supprimerReseau = (id, nom) => {
     const confirmation = window.confirm(`Voulez-vous vraiment supprimer définitivement le réseau "${nom}" ?`);
     if (confirmation) {
       setReseaux(reseaux.filter(r => r.id !== id));
       addLog(`Suppression sécurisée du réseau [${nom}]`);
+    }
+  };
+
+  // ⚙️ RÉINITIALISATION GLOBALE (COUCHE 6)
+  const réinitialiserHub = () => {
+    const etape1 = window.confirm("⚠️ ATTENTION : Vous allez effacer tous les réseaux configurés en local. Continuer ?");
+    if (etape1) {
+      const etape2 = window.confirm("Confirmez une seconde fois pour purger définitivement la base de données locale.");
+      if (etape2) {
+        localStorage.removeItem('transit_hub_networks');
+        setReseaux([{ id: 1, nom: "Ligne Inter-Communautés 94", type: "fake", couleur: "#050d9e" }]);
+        addLog("Réinitialisation complète du Hub effectuée");
+      }
     }
   };
 
@@ -84,7 +95,7 @@ export default function App() {
   return (
     <div style={{ padding: '20px', color: '#fff' }}>
       
-      {/* 📊 BARRE DE STATISTIQUES GLOBALES (COUCHE 5) */}
+      {/* BARRE DE STATISTIQUES */}
       <div style={{ display: 'flex', gap: '15px', marginBottom: '25px', flexWrap: 'wrap' }}>
         <div style={{ flex: '1', minWidth: '150px', background: '#1c2e3d', padding: '15px', borderRadius: '6px', textAlign: 'center', borderBottom: '4px solid #ffcd00' }}>
           <span style={{ fontSize: '12px', color: '#aaa', display: 'block' }}>TOTAL RÉSEAUX</span>
@@ -95,18 +106,21 @@ export default function App() {
           <strong style={{ fontSize: '22px', color: '#82DC73' }}>{totalReels} <span style={{ fontSize: '14px', fontWeight: 'normal' }}>({pourcentReels}%)</span></strong>
         </div>
         <div style={{ flex: '1', minWidth: '150px', background: '#1c2e3d', padding: '15px', borderRadius: '6px', textAlign: 'center', borderBottom: '4px solid #E3051C' }}>
-          <span style={{ fontSize: '12px', color: '#aaa', display: 'block' }}>RESEAUX FICTIFS</span>
+          <span style={{ fontSize: '12px', color: '#aaa', display: 'block' }}>RÉSEAUX FICTIFS</span>
           <strong style={{ fontSize: '22px', color: '#F3A4BA' }}>{totalFictifs}</strong>
         </div>
       </div>
 
-      {/* BOUTONS D'IMPORT / EXPORT */}
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <button onClick={exporterDonnees} style={{ padding: '8px 12px', background: '#34495e', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>📥 Exporter Sauvegarde JSON</button>
-        <label style={{ padding: '8px 12px', background: '#34495e', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-          📤 Importer Fichier JSON
-          <input type="file" accept=".json" onChange={importerDonnees} style={{ display: 'none' }} />
-        </label>
+      {/* GESTION DE DONNÉES & MAINTENANCE (COUCHE 6) */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={exporterDonnees} style={{ padding: '8px 12px', background: '#34495e', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>📥 Exporter JSON</button>
+          <label style={{ padding: '8px 12px', background: '#34495e', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+            📤 Importer JSON
+            <input type="file" accept=".json" onChange={importerDonnees} style={{ display: 'none' }} />
+          </label>
+        </div>
+        <button onClick={réinitialiserHub} style={{ padding: '8px 12px', background: '#e74c3c', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>⚠️ Réinitialiser le Hub</button>
       </div>
 
       <div style={{ background: '#1c2e3d', padding: '20px', borderRadius: '8px', marginBottom: '25px' }}>
