@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PREDEFINED_COLORS } from './data/colors';
 import { locales } from './data/translations';
 import { useHistory } from './context/HistoryContext';
@@ -10,7 +10,6 @@ export default function App() {
   const [nomReseau, setNomReseau] = useState("");
   const [typeReseau, setTypeReseau] = useState("fake");
 
-  // LocalStorage : Chargement des réseaux sauvegardés au démarrage
   const [reseaux, setReseaux] = useState(() => {
     const saved = localStorage.getItem('transit_hub_networks');
     return saved ? JSON.parse(saved) : [
@@ -18,7 +17,6 @@ export default function App() {
     ];
   });
 
-  // LocalStorage : Sauvegarde automatique dès que la liste change
   useEffect(() => {
     localStorage.setItem('transit_hub_networks', JSON.stringify(reseaux));
   }, [reseaux]);
@@ -35,7 +33,7 @@ export default function App() {
     };
 
     setReseaux([nouveau, ...reseaux]);
-    addLog(`Création du réseau [${nomReseau}] avec la teinte ${couleurSelectionnee}`);
+    addLog(`Création du réseau [${nomReseau}] (${couleurSelectionnee})`);
     setNomReseau("");
   };
 
@@ -44,40 +42,68 @@ export default function App() {
     addLog(`Suppression du réseau [${nom}]`);
   };
 
+  // Fonctionnalité d'exportation JSON de la Couche 4
+  const exporterDonnees = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reseaux, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `hub_transit_94_export.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    addLog("Exportation du fichier JSON des réseaux réussie");
+  };
+
+  // Fonctionnalité d'importation JSON de la Couche 4
+  const importerDonnees = (e) => {
+    const fileReader = new FileReader();
+    if (e.target.files[0]) {
+      fileReader.readAsText(e.target.files[0], "UTF-8");
+      fileReader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (Array.isArray(parsed)) {
+            setReseaux([...parsed, ...reseaux]);
+            addLog("Importation et fusion des réseaux JSON réussies");
+          }
+        } catch (error) {
+          addLog("Échec de l'importation : Format JSON invalide");
+        }
+      };
+    }
+  };
+
   return (
     <div style={{ padding: '20px', color: '#fff' }}>
       
-      {/* SECTION FORMULAIRE DE CONFIGURATION */}
+      {/* BOUTONS D'IMPORT / EXPORT (COUCHE 4) */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <button onClick={exporterDonnees} style={{ padding: '8px 12px', background: '#34495e', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>📥 Exporter Sauvegarde JSON</button>
+        <label style={{ padding: '8px 12px', background: '#34495e', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+          📤 Importer Fichier JSON
+          <input type="file" accept=".json" onChange={importerDonnees} style={{ display: 'none' }} />
+        </label>
+      </div>
+
       <div style={{ background: '#1c2e3d', padding: '20px', borderRadius: '8px', marginBottom: '25px' }}>
         <h3 style={{ marginTop: 0 }}>➕ Configurer un réseau (Sauvegarde locale automatique)</h3>
         <form onSubmit={ajouterReseau} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          
-          <input 
-            type="text" 
-            value={nomReseau} 
-            onChange={(e) => setNomReseau(e.target.value)}
-            placeholder="Nom de la ligne / du réseau..." 
-            style={{ width: '100%', padding: '10px', borderRadius: '4px', border: 'none', background: '#0e1e2c', color: '#fff' }}
-          />
-
+          <input type="text" value={nomReseau} onChange={(e) => setNomReseau(e.target.value)} placeholder="Nom de la ligne / du réseau..." style={{ width: '100%', padding: '10px', borderRadius: '4px', border: 'none', background: '#0e1e2c', color: '#fff' }} />
           <div style={{ display: 'flex', gap: '20px' }}>
             <label style={{ cursor: 'pointer' }}><input type="radio" name="type" value="fake" checked={typeReseau === "fake"} onChange={() => setTypeReseau("fake")} /> Fictif</label>
             <label style={{ cursor: 'pointer' }}><input type="radio" name="type" value="real" checked={typeReseau === "real"} onChange={() => setTypeReseau("real")} /> Réel</label>
           </div>
-
           <div>
             <div style={{ background: '#2c3e50', padding: '12px', borderRadius: '6px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '15px' }}>
               <label style={{ fontWeight: 'bold', color: '#ffcd00' }}>🎨 Palette libre :</label>
               <input type="color" value={couleurSelectionnee} onChange={(e) => setCouleurSelectionnee(e.target.value)} style={{ border: 'none', width: '45px', height: '30px', cursor: 'pointer', background: 'none' }} />
             </div>
-
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#98D4E2' }}>Nuancier IDFM :</label>
             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', backgroundColor: '#0e1e2c', padding: '10px', borderRadius: '6px', marginBottom: '15px' }}>
               {PREDEFINED_COLORS.idfm.map((col) => (
                 <button key={col.hex} type="button" onClick={() => setCouleurSelectionnee(col.hex)} style={{ width: '24px', height: '24px', backgroundColor: col.hex, border: couleurSelectionnee === col.hex ? '3px solid #fff' : '1px solid #333', borderRadius: '4px', cursor: 'pointer' }} />
               ))}
             </div>
-
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#6ec4e8' }}>Nuancier RATP complet :</label>
             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', backgroundColor: '#0e1e2c', padding: '10px', borderRadius: '6px' }}>
               {PREDEFINED_COLORS.ratp.map((col) => (
@@ -85,17 +111,15 @@ export default function App() {
               ))}
             </div>
           </div>
-
           <button type="submit" style={{ padding: '12px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Enregistrer la configuration</button>
         </form>
       </div>
 
       <ApercuImage borderTeinte={couleurSelectionnee} />
 
-      {/* FLUX D'ACTIVITÉ EN DIRECT (CONCURRENCE COMMUNAUTAIRE) */}
       <div style={{ background: '#1c2e3d', padding: '20px', borderRadius: '8px', marginBottom: '25px' }}>
         <h3 style={{ marginTop: 0, color: '#ff7e2e' }}>📜 Journal des modifications du Hub</h3>
-        <div style={{ maxHieght: '120px', overflowY: 'auto', background: '#0e1e2c', padding: '10px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '13px' }}>
+        <div style={{ maxHeight: '120px', overflowY: 'auto', background: '#0e1e2c', padding: '10px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '13px' }}>
           {logs.map(log => (
             <div key={log.id} style={{ marginBottom: '6px', color: '#bbb' }}>
               <span style={{ color: '#888' }}>[{log.date}]</span> {log.action}
@@ -104,7 +128,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* BLOC DES TRADUCTIONS SIMULTANÉES */}
       <div style={{ background: '#1c2e3d', padding: '20px', borderRadius: '8px', marginBottom: '25px' }}>
         <h3 style={{ marginTop: 0, color: '#ffcd00' }}>🌍 Traduction Simultanée (5 langues)</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
@@ -131,21 +154,20 @@ export default function App() {
         </table>
       </div>
 
-      {/* PARC DES RÉSEAUX ET SUPPRESSION */}
       <div>
         <h3>📈 Liste des parcs créés</h3>
         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
           {reseaux.map(res => (
             <div key={res.id} style={{ background: '#172a3a', padding: '15px', borderRadius: '6px', borderLeft: `6px solid ${res.couleur}`, minWidth: '220px', position: 'relative' }}>
               <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', backgroundColor: res.type === 'real' ? '#00814F' : '#E3051C', fontWeight: 'bold' }}>{res.type === 'real' ? 'RÉEL' : 'FICTIF'}</span>
-              <button onClick={() => supprimerReseau(res.id, res.nom)} style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
+              <button onClick={() => supprimerReseau(res.id, res.nom)} style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>🗑️</button>
               <h4 style={{ margin: '8px 0 0 0' }}>{res.nom}</h4>
               <span style={{ fontSize: '11px', color: '#888' }}>{res.couleur}</span>
             </div>
           ))}
         </div>
       </div>
-
     </div>
   );
-}
+                                                                             }
+      
